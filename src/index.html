@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Organizador de FIIs</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo-area">
+        <h1>[ FIIs ]</h1>
+        <nav class="app-nav">
+          <button class="nav-btn active" id="btn-tab-dash">Dashboard</button>
+          <button class="nav-btn" id="btn-tab-hist">Operações</button>
+          <button class="nav-btn" id="btn-tab-div">Dividendos</button>
+        </nav>
+      </div>
+      <div class="wallet-summary">
+        <span class="label">Patrimônio Total:</span>
+        <span class="value" id="total-patrimony">R$ 0,00</span>
+      </div>
+    </header>
+
+    <main class="dashboard" id="view-dashboard">
+      <section class="top-section">
+        <div class="summary-cards">
+          <div class="card">
+            <h3>Total de Dividendos</h3>
+            <p id="total-dividends" class="text-green">+ R$ 0,00</p>
+          </div>
+          <div class="card">
+            <h3>Total de Cotas</h3>
+            <p id="total-shares">0</p>
+          </div>
+          <div class="card">
+            <h3>Fundo Destaque</h3>
+            <p id="top-fii">Nenhum</p>
+          </div>
+        </div>
+        
+        <div class="charts-row">
+          <div class="chart-container card">
+            <h3>Carteira de FII / Ativos</h3>
+            <div class="canvas-wrapper">
+              <canvas id="portfolioChartAtivos"></canvas>
+            </div>
+          </div>
+          <div class="chart-container card">
+            <h3>Carteira de FII / Segmento</h3>
+            <div class="canvas-wrapper">
+              <canvas id="portfolioChartSegmentos"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="fii-container">
+        <div class="fii-container-header">
+          <h2>Análise de Carteira</h2>
+          <div class="header-actions">
+            <button class="btn-neon" id="btn-open-modal-op-dash">+ Adicionar FII</button>
+            <button id="btn-refresh" class="btn-neon">↻ Atualizar Preços na B3</button>
+          </div>
+        </div>
+        
+        <div class="table-wrapper card">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Ticker</th>
+                <th>Segmento</th>
+                <th>Qtd</th>
+                <th>Valor Hoje</th>
+                <th>Valor Pago</th>
+                <th>Total Original</th>
+                <th>Total Hoje</th>
+                <th>Lucro/Prej (R$)</th>
+                <th>Lucro/Prej (%)</th>
+                <th>Posição</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-tbody">
+            </tbody>
+            <tfoot id="dashboard-tfoot">
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <main class="dashboard hidden" id="view-history">
+      <section class="fii-container">
+        <div class="fii-container-header">
+          <h2>Histórico de Operações (Compra e Venda)</h2>
+          <button class="btn-neon" id="btn-open-modal-op">+ Registrar Operação</button>
+        </div>
+        
+        <div class="table-wrapper card">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Ticker</th>
+                <th>Operação</th>
+                <th>Cotas</th>
+                <th>Valor Unitário</th>
+                <th>Total da Operação</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <main class="dashboard hidden" id="view-dividends">
+      <section class="fii-container">
+        <div class="fii-container-header">
+          <h2>Recebimentos de Dividendos</h2>
+          <button class="btn-neon" id="btn-open-modal-div">+ Novo Dividendo</button>
+        </div>
+        
+        <div class="table-wrapper card">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Ticker</th>
+                <th class="text-green">Dividendos</th>
+                <th># cotas</th>
+                <th>Dividendo/Cota</th>
+                <th>Valor da Cota</th>
+                <th style="color: var(--accent-orange);">D.Y</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="dividends-tbody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div id="modal-op" class="modal-overlay hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Registrar Operação</h2>
+          <button id="btn-close-modal-op" class="btn-close">X</button>
+        </div>
+        <form id="form-add-op">
+          <div class="input-row">
+            <div class="input-group">
+              <label>Data</label>
+              <input type="date" id="input-op-data" required>
+            </div>
+            <div class="input-group">
+              <label>Operação</label>
+              <select id="input-op-type" required>
+                <option value="Compra">Compra</option>
+                <option value="Venda">Venda</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Ticker do FII</label>
+            <input type="text" id="input-op-ticker" list="fii-suggestions" required autocomplete="off" placeholder="ex: MXRF11">
+            <datalist id="fii-suggestions"></datalist>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Quantidade de Cotas</label>
+              <input type="number" id="input-op-shares" required min="1">
+            </div>
+            <div class="input-group">
+              <label>Preço por Cota / Preço Médio (R$)</label>
+              <input type="number" id="input-op-price" required step="any" min="0">
+            </div>
+          </div>
+          <button type="submit" class="btn-submit">Salvar Operação</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="modal-div" class="modal-overlay hidden">
+      <div class="modal-content" style="border-color: var(--accent-green);">
+        <div class="modal-header">
+          <h2 style="color: var(--accent-green);">Registrar Dividendo</h2>
+          <button id="btn-close-modal-div" class="btn-close">X</button>
+        </div>
+        <form id="form-add-div">
+          <div class="input-row">
+            <div class="input-group">
+              <label>Data de Pagamento</label>
+              <input type="date" id="input-div-data" required>
+            </div>
+            <div class="input-group">
+              <label>Ticker do FII</label>
+              <input type="text" id="input-div-ticker" list="fii-suggestions" required autocomplete="off">
+            </div>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Total Recebido (R$)</label>
+              <input type="number" id="input-div-total" required step="any" min="0" placeholder="ex: 15.50">
+            </div>
+            <div class="input-group">
+              <label># Cotas Base</label>
+              <input type="number" id="input-div-shares" required min="1">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Valor da Cota na Data (R$) - Para calc. de D.Y</label>
+            <input type="number" id="input-div-price" required step="any" min="0">
+          </div>
+          <button type="submit" class="btn-submit" style="color: var(--bg-dark); background-color: var(--accent-green);">Salvar Dividendo</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
