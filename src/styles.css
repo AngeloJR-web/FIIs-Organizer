@@ -40,7 +40,33 @@ body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh;
 .summary-cards p { font-size: 1.8rem; font-weight: bold; font-family: 'Courier New', Courier, monospace; }
 
 /* --- Containers e Tabelas Analíticas --- */
-.fii-container h2 { margin-bottom: 1.5rem; font-size: 1.2rem; color: var(--text-main); border-left: 4px solid var(--accent-blue); padding-left: 10px; text-transform: uppercase; }
+
+/* Ajuste no H2 para alinhar perfeito com o botão pegajoso */
+.fii-container h2 { 
+  margin-bottom: 0; 
+  font-size: 1.2rem; 
+  color: var(--text-main); 
+  border-left: 4px solid var(--accent-blue); 
+  padding-left: 10px; 
+  text-transform: uppercase; 
+}
+
+/* A MÁGICA: Cabeçalho que Gruda no Topo (Sticky) */
+.fii-container-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  
+  position: sticky;
+  top: -2rem; /* Sobe até encostar no topo absoluto da área rolável */
+  margin-top: -2rem; /* Puxa fisicamente o container para cima */
+  padding-top: 2rem; /* Devolve o respiro visual para o texto não ficar colado na borda */
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  background-color: var(--bg-dark); /* Fundo sólido para esconder a tabela rolando atrás dele */
+  z-index: 100; /* Força ele a ficar por cima de tudo */
+  border-bottom: 1px solid var(--border-color); /* Linha divisória charmosa */
+}
 
 .table-wrapper { overflow-x: auto; padding: 0; }
 .history-table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -48,8 +74,10 @@ body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh;
 .history-table th { background-color: var(--bg-card); font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border-color); }
 .history-table tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
 
+/* Rodapé da tabela com Totais */
 .history-table tfoot th { background-color: var(--bg-dark); color: var(--text-main); font-weight: bold; border-top: 2px solid var(--border-color); }
 
+/* Destaques de Lucro/Prejuízo */
 .bg-green { background-color: rgba(0, 255, 136, 0.1); color: var(--accent-green) !important; font-weight: bold; }
 .bg-red { background-color: rgba(255, 68, 68, 0.1); color: var(--accent-red) !important; font-weight: bold; }
 
@@ -62,7 +90,6 @@ body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh;
 
 /* --- Utilitários --- */
 .text-green { color: var(--accent-green) !important; }
-.fii-container-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .header-actions { display: flex; gap: 15px; }
 
 /* --- Botões Neon --- */

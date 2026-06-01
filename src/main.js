@@ -21,7 +21,8 @@ const dicionarioFIIs = {
   "BBIG11": "Papel", "CPSH11": "Papel", "RZAG11": "Fiagro",
   "MANA11": "Fiagro", "BTC11": "Papel", "VGHF11": "Papel",
   "CACR11": "Papel", "BTHF11": "Hibrido", "SNEL11": "Hibrido",
-  "SNFZ11": "Fiagro", "ALZR11": "Hibrido", "TRXF11": "Tijolo"
+  "SNFZ11": "Fiagro", "ALZR11": "Hibrido", "TRXF11": "Tijolo",
+  "BTCI11": "Papel"
 };
 
 function gerarIDUnico() {
@@ -260,7 +261,7 @@ function renderizarTabelaDividendos() {
   }
 }
 
-// --- ATUALIZAÇÕES DOS GRÁFICOS ---
+// --- ATUALIZAÇÕES DOS GRÁFICOS (Agora mostrando as Porcentagens) ---
 function atualizarGraficos(fiis) {
   if (typeof Chart === 'undefined') return;
 
@@ -273,7 +274,8 @@ function atualizarGraficos(fiis) {
     return;
   }
 
-  const paletaCores = ['#00e5ff', '#00ff88', '#b026ff', '#ff9d00', '#ff4444', '#ff00d4', '#e1ff00', '#ff5900', '#0044ff'];
+  // Paleta de cores estendida para suportar carteiras maiores sem repetir cor
+  const paletaCores = ['#00e5ff', '#00ff88', '#b026ff', '#ff9d00', '#ff4444', '#ff00d4', '#e1ff00', '#ff5900', '#0044ff', '#1abc9c', '#e74c3c', '#3498db', '#9b59b6', '#34495e', '#e67e22'];
   const labelsAtivos = fiis.map(f => f.ticker);
   const dataAtivos = fiis.map(f => f.shares * f.currentPrice);
 
@@ -283,27 +285,56 @@ function atualizarGraficos(fiis) {
     distribuicaoSeg[tipo] = (distribuicaoSeg[tipo] || 0) + (fii.shares * fii.currentPrice);
   });
 
+  // A MÁGICA DA PORCENTAGEM: Cria uma regra para transformar os valores das fatias em %
+  const tooltipOptions = {
+    callbacks: {
+      label: function(context) {
+        let dataset = context.chart.data.datasets[context.datasetIndex];
+        let total = dataset.data.reduce((acc, current) => acc + current, 0);
+        let currentValue = context.raw;
+        let percentage = ((currentValue / total) * 100).toFixed(2).replace('.', ',');
+        return ` ${percentage}%`;
+      }
+    }
+  };
+
   if (graficoCarteiraAtivos) {
     graficoCarteiraAtivos.data.labels = labelsAtivos;
     graficoCarteiraAtivos.data.datasets[0].data = dataAtivos;
+    graficoCarteiraAtivos.options.plugins.tooltip = tooltipOptions;
     graficoCarteiraAtivos.update(); 
   } else {
     graficoCarteiraAtivos = new Chart(ctxAtivos, {
       type: 'doughnut',
       data: { labels: labelsAtivos, datasets: [{ data: dataAtivos, backgroundColor: paletaCores, borderWidth: 0, hoverOffset: 10 }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right', labels: { color: '#e0e0e0', font: { family: 'Courier New', size: 11 } } } }, cutout: '65%' }
+      options: { 
+        responsive: true, maintainAspectRatio: false, animation: false, 
+        plugins: { 
+          legend: { position: 'right', labels: { color: '#e0e0e0', font: { family: 'Courier New', size: 10 } } },
+          tooltip: tooltipOptions // Aplica a porcentagem aqui
+        }, 
+        cutout: '65%' 
+      }
     });
   }
 
   if (graficoCarteiraSegmentos) {
     graficoCarteiraSegmentos.data.labels = Object.keys(distribuicaoSeg);
     graficoCarteiraSegmentos.data.datasets[0].data = Object.values(distribuicaoSeg);
+    graficoCarteiraSegmentos.options.plugins.tooltip = tooltipOptions;
     graficoCarteiraSegmentos.update(); 
   } else {
     graficoCarteiraSegmentos = new Chart(ctxSegmentos, {
       type: 'doughnut',
       data: { labels: Object.keys(distribuicaoSeg), datasets: [{ data: Object.values(distribuicaoSeg), backgroundColor: ['#ff9d00', '#ff4444', '#00e5ff', '#00ff88'], borderWidth: 0, hoverOffset: 10 }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right', labels: { color: '#e0e0e0', font: { family: 'Courier New', size: 11 } } } }, cutout: '65%' }
+      options: { 
+        responsive: true, maintainAspectRatio: false, animation: false, 
+        plugins: { 
+          legend: { position: 'right', labels: { color: '#e0e0e0', font: { family: 'Courier New', size: 10 } } },
+          tooltip: tooltipOptions // Aplica a porcentagem aqui também!
+        }, 
+        cutout: '65%' 
+      }
     });
   }
 }
