@@ -1,5 +1,6 @@
 const { invoke } = window.__TAURI__.core;
-const TOKEN_BRAPI = 'dXRGpCoYc2j8vPJ2U5rdEC';
+// O token da Brapi fica em config.js, que não vai para o git. O modelo está em config.example.js.
+const TOKEN_BRAPI = window.CONFIG?.TOKEN_BRAPI ?? 'COLE_SEU_TOKEN_AQUI';
 
 let dadosApp = {
   carteira: [],   
