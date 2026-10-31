@@ -6,7 +6,7 @@ Um software desktop nativo, seguro e de alta fidelidade para gestão de Fundos I
 * **Frontend:** HTML5, CSS3 (Neon UI/Dark Theme) e JavaScript (Vanilla).
 * **Backend:** Rust 🦀.
 * **Framework:** Tauri (Desktop leve e ultra-rápido).
-* **Segurança:** Criptografia AES-256-GCM para armazenamento local do cofre de dados.
+* **Segurança:** Criptografia AES-256-GCM com chave derivada da sua senha por Argon2id.
 * **Integração:** Consumo da Brapi API para cotações da B3 em tempo real.
 * **Data Viz:** Chart.js para dashboards dinâmicos (Ativos e Segmentos).
 
@@ -16,6 +16,13 @@ Um software desktop nativo, seguro e de alta fidelidade para gestão de Fundos I
 - **Gestão de Dividendos:** Área exclusiva para lançamento de proventos, calculando automaticamente o Dividend Yield (D.Y) de cada operação.
 - **Background Auto-Update:** O motor do app monitora os preços da B3 em segundo plano (60s) e atualiza os valores na interface suavemente, sem piscar a tela.
 - **Banco de Dados Criptografado (Offline-First):** Seus dados financeiros não ficam na nuvem nem no `localStorage`. Eles são salvos diretamente no seu sistema operacional sob uma camada militar de criptografia em Rust.
+
+## 🔐 Senha do Cofre
+Na primeira vez que abrir o app, você cria uma senha. A chave que protege a carteira é gerada a partir dela e só fica na memória enquanto o app está aberto.
+
+Carteiras salvas por versões anteriores são migradas para o novo formato quando você cria a senha, sem perder dados.
+
+**Importante:** não existe como recuperar a senha. Sem ela, a carteira não pode ser aberta.
 
 ## 📦 Como Instalar (Usuário Final)
 Vá até a aba **Releases** deste repositório, baixe o arquivo `.exe` e instale no seu Windows.

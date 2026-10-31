@@ -71,6 +71,76 @@ function showToast(message, type = 'success') {
   setTimeout(() => { toast.remove(); }, 3000);
 }
 
+// --- COFRE ---
+const TELAS_COFRE = {
+  novo: {
+    titulo: 'Crie sua senha', botao: 'Criar cofre', ocupado: 'Criando...', criando: true,
+    texto: 'Ela protege sua carteira neste computador. Guarde bem: não existe como recuperar a senha.'
+  },
+  legado: {
+    titulo: 'Proteja sua carteira', botao: 'Proteger carteira', ocupado: 'Protegendo...', criando: true,
+    texto: 'Agora a carteira é protegida por uma senha sua. Crie uma para continuar: seus dados serão mantidos. Guarde bem, porque não existe como recuperar a senha.'
+  },
+  protegido: {
+    titulo: 'Abra seu cofre', botao: 'Abrir', ocupado: 'Abrindo...', criando: false,
+    texto: 'Digite sua senha para ver a carteira.'
+  }
+};
+
+function mostrarErroCofre(mensagem) {
+  document.getElementById('cofre-erro').innerText = mensagem;
+}
+
+function prepararCofre(estado) {
+  const tela = TELAS_COFRE[estado];
+  document.getElementById('cofre-titulo').innerText = tela.titulo;
+  document.getElementById('cofre-texto').innerText = tela.texto;
+  document.getElementById('cofre-botao').innerText = tela.botao;
+  document.getElementById('cofre-grupo-confirmar').style.display = tela.criando ? '' : 'none';
+  document.getElementById('cofre-confirmar').required = tela.criando;
+  document.getElementById('cofre-senha').autocomplete = tela.criando ? 'new-password' : 'current-password';
+  document.getElementById('cofre-senha').focus();
+
+  document.getElementById('form-cofre').onsubmit = async (e) => {
+    e.preventDefault();
+    const senha = document.getElementById('cofre-senha').value;
+    const botao = document.getElementById('cofre-botao');
+    if (tela.criando && senha !== document.getElementById('cofre-confirmar').value) {
+      mostrarErroCofre('As senhas não são iguais.');
+      return;
+    }
+    mostrarErroCofre('');
+    botao.disabled = true;
+    botao.innerText = tela.ocupado;
+    try {
+      await invoke(tela.criando ? 'criar_senha' : 'desbloquear', { senha });
+      await entrarNoApp();
+    } catch (erro) {
+      mostrarErroCofre(String(erro));
+      document.getElementById('cofre-senha').select();
+    } finally {
+      botao.disabled = false;
+      botao.innerText = tela.botao;
+    }
+  };
+}
+
+async function entrarNoApp() {
+  await carregarDadosDoCofre();
+  document.getElementById('form-cofre').reset();
+  document.getElementById('tela-cofre').classList.add('hidden');
+  setInterval(() => { atualizarCotacoesAPI(true); }, 60000);
+}
+
+async function iniciarCofre() {
+  try {
+    prepararCofre(await invoke('estado_cofre'));
+  } catch (erro) {
+    prepararCofre('protegido');
+    mostrarErroCofre(String(erro));
+  }
+}
+
 // --- PERSISTÊNCIA ---
 async function salvarDados(silencioso = false) {
   try {
@@ -486,10 +556,9 @@ formDiv.addEventListener("submit", async (e) => {
 });
 
 window.addEventListener("DOMContentLoaded", () => {
-  carregarDadosDoCofre();
+  iniciarCofre();
   const datalist = document.getElementById("fii-suggestions");
   for (const ticker in dicionarioFIIs) {
     const option = document.createElement("option"); option.value = ticker; datalist.appendChild(option);
   }
-  setInterval(() => { atualizarCotacoesAPI(true); }, 60000);
 });

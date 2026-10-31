@@ -1,96 +1,119 @@
 // Evita que uma janela de terminal abra junto com o app no Windows
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use aes_gcm::{
-    aead::{Aead, AeadCore, KeyInit, OsRng},
-    Aes256Gcm, Key, Nonce,
-};
-use base64::{engine::general_purpose, Engine as _};
+mod cofre;
+
+use cofre::{Chave, Formato};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Mutex;
+use tauri::State;
 
-// A nossa Chave Mestra de 256 bits (32 bytes). 
-const CHAVE_SECRETA: &[u8; 32] = b"FII_Tracker_SuperSecretKey2026!!";
+// A chave só existe na memória, depois que a pessoa digita a senha.
+struct Sessao(Mutex<Option<Chave>>);
 
 // LÓGICA ATUALIZADA: Salva o banco de dados na pasta do sistema do usuário
 fn obter_caminho_arquivo() -> PathBuf {
     // Tenta pegar a pasta AppData (Windows) ou ~/.config (Mac/Linux)
     let mut path = dirs::data_dir().unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
-    
+
     // Cria uma subpasta exclusiva para o nosso software
     path.push("FII_Tracker");
-    
+
     // Garante que a pasta exista (cria automaticamente se for a primeira vez)
     fs::create_dir_all(&path).ok();
-    
+
     // Define o nome do arquivo final
     path.push("carteira_criptografada.dat");
     path
 }
 
-#[tauri::command]
-fn salvar_carteira(dados: String) -> Result<String, String> {
-    let key = Key::<Aes256Gcm>::from_slice(CHAVE_SECRETA);
-    let cipher = Aes256Gcm::new(key);
-    let nonce = Aes256Gcm::generate_nonce(&mut OsRng); 
-    
-    match cipher.encrypt(&nonce, dados.as_bytes()) {
-        Ok(texto_cifrado) => {
-            let mut dados_finais = nonce.to_vec();
-            dados_finais.extend_from_slice(&texto_cifrado);
-            
-            let b64_encoded = general_purpose::STANDARD.encode(&dados_finais);
-            let path = obter_caminho_arquivo();
-            
-            match fs::write(&path, b64_encoded) {
-                Ok(_) => Ok("Carteira protegida e salva no cofre!".to_string()),
-                Err(e) => Err(format!("Erro ao gravar arquivo no HD: {}", e))
-            }
-        },
-        Err(e) => Err(format!("Erro ao encriptar os dados: {:?}", e))
+fn ler_arquivo() -> Result<Option<String>, String> {
+    let path = obter_caminho_arquivo();
+    if !path.exists() {
+        return Ok(None);
     }
+    fs::read_to_string(&path)
+        .map(Some)
+        .map_err(|e| format!("Erro de leitura no HD: {}", e))
+}
+
+// Grava em um arquivo temporário antes de trocar, para uma queda de energia não destruir a carteira.
+fn gravar_arquivo(conteudo: &str) -> Result<(), String> {
+    let path = obter_caminho_arquivo();
+    let temporario = path.with_extension("tmp");
+    fs::write(&temporario, conteudo).map_err(|e| format!("Erro ao gravar arquivo no HD: {}", e))?;
+    fs::rename(&temporario, &path).map_err(|e| format!("Erro ao gravar arquivo no HD: {}", e))
 }
 
 #[tauri::command]
-fn carregar_carteira() -> Result<String, String> {
-    let path = obter_caminho_arquivo();
-    
-    if !path.exists() {
-        return Ok("[]".to_string());
+fn estado_cofre(sessao: State<Sessao>) -> Result<String, String> {
+    if sessao.0.lock().unwrap().is_some() {
+        return Ok("aberto".to_string());
     }
-
-    match fs::read_to_string(&path) {
-        Ok(b64_encoded) => {
-            match general_purpose::STANDARD.decode(&b64_encoded) {
-                Ok(dados_encriptados) => {
-                    if dados_encriptados.len() < 12 {
-                        return Err("Arquivo corrompido ou inválido.".to_string());
-                    }
-                    
-                    let key = Key::<Aes256Gcm>::from_slice(CHAVE_SECRETA);
-                    let cipher = Aes256Gcm::new(key);
-                    
-                    let nonce = Nonce::from_slice(&dados_encriptados[0..12]);
-                    let texto_cifrado = &dados_encriptados[12..];
-                    
-                    match cipher.decrypt(nonce, texto_cifrado) {
-                        Ok(texto_puro) => {
-                            Ok(String::from_utf8(texto_puro).unwrap_or_else(|_| "[]".to_string()))
-                        },
-                        Err(_) => Err("Falha ao quebrar a criptografia.".to_string())
-                    }
-                },
-                Err(_) => Err("Erro ao decodificar Base64.".to_string())
-            }
+    let estado = match ler_arquivo()? {
+        None => "novo",
+        Some(conteudo) => match cofre::detectar(&conteudo)? {
+            Formato::Legado => "legado",
+            Formato::Protegido => "protegido",
         },
-        Err(e) => Err(format!("Erro de leitura no HD: {}", e))
+    };
+    Ok(estado.to_string())
+}
+
+// Cria a senha do cofre. Uma carteira antiga é regravada no formato novo, com os mesmos dados.
+#[tauri::command(async)]
+fn criar_senha(senha: String, sessao: State<'_, Sessao>) -> Result<(), String> {
+    let chave = cofre::nova_chave(&senha)?;
+    let dados = match ler_arquivo()? {
+        None => "[]".to_string(),
+        Some(conteudo) => match cofre::detectar(&conteudo)? {
+            Formato::Legado => cofre::decifrar_legado(&conteudo)?,
+            Formato::Protegido => return Err("Este cofre já tem uma senha.".to_string()),
+        },
+    };
+    gravar_arquivo(&cofre::cifrar(&chave, &dados)?)?;
+    *sessao.0.lock().unwrap() = Some(chave);
+    Ok(())
+}
+
+#[tauri::command(async)]
+fn desbloquear(senha: String, sessao: State<'_, Sessao>) -> Result<(), String> {
+    let conteudo = ler_arquivo()?.ok_or_else(|| "Este cofre ainda não foi criado.".to_string())?;
+    let (chave, _) = cofre::abrir(&senha, &conteudo)?;
+    *sessao.0.lock().unwrap() = Some(chave);
+    Ok(())
+}
+
+#[tauri::command]
+fn salvar_carteira(dados: String, sessao: State<Sessao>) -> Result<String, String> {
+    let guarda = sessao.0.lock().unwrap();
+    let chave = guarda.as_ref().ok_or_else(|| "O cofre está bloqueado.".to_string())?;
+    gravar_arquivo(&cofre::cifrar(chave, &dados)?)?;
+    Ok("Carteira protegida e salva no cofre!".to_string())
+}
+
+#[tauri::command]
+fn carregar_carteira(sessao: State<Sessao>) -> Result<String, String> {
+    let guarda = sessao.0.lock().unwrap();
+    let chave = guarda.as_ref().ok_or_else(|| "O cofre está bloqueado.".to_string())?;
+    match ler_arquivo()? {
+        None => Ok("[]".to_string()),
+        Some(conteudo) => cofre::decifrar(chave, &conteudo),
     }
 }
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init()) 
-        .invoke_handler(tauri::generate_handler![salvar_carteira, carregar_carteira])
+        .manage(Sessao(Mutex::new(None)))
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![
+            estado_cofre,
+            criar_senha,
+            desbloquear,
+            salvar_carteira,
+            carregar_carteira
+        ])
         .run(tauri::generate_context!())
         .expect("Erro ao inicializar a ponte do Tauri");
 }

@@ -221,6 +221,27 @@
       </div>
     </div>
 
+    <div id="tela-cofre" class="modal-overlay tela-cofre">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="cofre-titulo">Abra seu cofre</h2>
+        </div>
+        <p id="cofre-texto" class="cofre-texto"></p>
+        <form id="form-cofre">
+          <div class="input-group">
+            <label for="cofre-senha">Senha</label>
+            <input type="password" id="cofre-senha" required>
+          </div>
+          <div class="input-group" id="cofre-grupo-confirmar">
+            <label for="cofre-confirmar">Confirme a senha</label>
+            <input type="password" id="cofre-confirmar" autocomplete="new-password">
+          </div>
+          <p id="cofre-erro" class="cofre-erro" role="alert"></p>
+          <button type="submit" id="cofre-botao" class="btn-submit">Abrir</button>
+        </form>
+      </div>
+    </div>
+
     <div id="toast-container" class="toast-container"></div>
 
     <script src="config.js"></script>
