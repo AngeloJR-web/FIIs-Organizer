@@ -125,3 +125,8 @@ body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh;
 .toast.info { border-left: 4px solid var(--accent-blue); }
 @keyframes slideIn { to { transform: translateX(0); opacity: 1; } }
 @keyframes slideOut { to { transform: translateX(120%); opacity: 0; } }
+
+/* --- Tela da senha do cofre --- */
+.tela-cofre { background-color: var(--bg-dark); }
+.cofre-texto { margin-bottom: 1.25rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+.cofre-erro { min-height: 1.3em; margin-top: 0.5rem; color: var(--accent-red); font-size: 0.9rem; }
