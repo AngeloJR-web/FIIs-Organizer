@@ -24,7 +24,7 @@ Vá até a aba **Releases** deste repositório, baixe o arquivo `.exe` e instale
 1. Clone este repositório.
 2. Certifique-se de ter o **Node.js** e o **Rust** instalados na sua máquina.
 3. Instale as dependências do frontend com `npm install`.
-4. Adicione sua chave da API da Brapi no arquivo `main.js`.
+4. Copie `src/config.example.js` para `src/config.js` e coloque nele seu token da [Brapi](https://brapi.dev). Esse arquivo fica de fora do Git.
 5. Rode o comando `npm run tauri dev`.
 
 ---
